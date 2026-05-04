@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Overlay: PCM5102A I2S DAC on Raspberry Pi 4B
+ *
+ * Hardware: Texas Instruments PCM5102A stereo DAC
+ * Interface: I2S (Inter-IC Sound) via BCM2711 I2S controller
+ * Author: <your-name>
+ *
+ * Pin Mapping (PCM5102A → RPi 4B GPIO):
+ *   BCK  (Bit Clock)     → GPIO18 (PCM_CLK,  Pin 12)
+ *   LRCK (Word Select)   → GPIO19 (PCM_FS,   Pin 35)
+ *   DIN  (Data In)       → GPIO21 (PCM_DOUT, Pin 40)
+ *   VCC                  → 3.3V              (Pin 1)
+ *   GND                  → GND               (Pin 6)
+ *   FLT  (Filter select) → GND  (Normal latency)
+ *   DEMP (De-emphasis)   → GND  (Disabled)
+ *   XSMT (Soft mute)     → 3.3V (Unmuted)
+ *   FMT  (Format select) → GND  (I2S format)
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2711";
+
+	fragment@0 {
+		target = <&i2s_clk_producer>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+		__overlay__ {
+			/*
+			 * PCM5102A codec node.
+			 * This codec has no I2C/SPI control interface —
+			 * all config is done via hardware pins (FLT, FMT, DEMP, XSMT).
+			 * We use the simple-audio-card + dummy codec approach.
+			 */
+			pcm5102a: pcm5102a-codec {
+				#sound-dai-cells = <0>;
+				compatible = "ti,pcm5102a";
+				status = "okay";
+			};
+
+			sound_card: sound {
+				compatible = "simple-audio-card";
+				simple-audio-card,name = "rpi-pcm5102a";
+				simple-audio-card,format = "i2s";
+
+				/*
+				 * simple-audio-card,bitclock-master and
+				 * simple-audio-card,frame-master point to the
+				 * CPU side (RPi), meaning RPi drives BCK and LRCK.
+				 * PCM5102A is a clock consumer (slave).
+				 */
+				simple-audio-card,bitclock-master = <&cpu_dai>;
+				simple-audio-card,frame-master    = <&cpu_dai>;
+
+				cpu_dai: simple-audio-card,cpu {
+					sound-dai = <&i2s_clk_producer>;
+				};
+
+				simple-audio-card,codec {
+					sound-dai = <&pcm5102a>;
+				};
+			};
+		};
+	};
+
+	__overrides__ {
+		/*
+		 * Expose card name as a configurable parameter.
+		 * Usage: dtoverlay=pcm5102a-overlay,card_name=my-dac
+		 */
+		card_name = <&sound_card>,"simple-audio-card,name";
+	};
+};

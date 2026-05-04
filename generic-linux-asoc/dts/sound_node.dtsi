@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * sound_node.dtsi — Generic Sound Card DTS Snippet
+ *
+ * Include this file from your board's .dts:
+ *   #include "sound_node.dtsi"
+ *
+ * Adapt the following before including:
+ *   1. i2c_addr: change 0x18 to your codec's I2C address
+ *   2. i2c controller: change &i2c1 to your board's I2C bus
+ *   3. i2s controller: change &i2s0 to your board's I2S node
+ *   4. compatible: change "myvendor,my-soundcard" to match machine driver
+ *   5. spk-amp-en-gpios: your speaker amp enable GPIO (or remove if unused)
+ */
+
+/ {
+	/*
+	 * Machine driver node — matches my_machine_of_match[] in my_machine.c
+	 * This node instantiates the machine driver as a platform device.
+	 */
+	my_sound: sound {
+		compatible = "myvendor,my-soundcard";
+		status = "okay";
+
+		/*
+		 * Optional: speaker amplifier enable GPIO.
+		 * Active high — the machine driver will assert this on stream open.
+		 */
+		spk-amp-en-gpios = <&gpio 42 GPIO_ACTIVE_HIGH>;
+
+		/*
+		 * DAPM audio routing — maps board-level widget names
+		 * to codec pin names. Format: "board widget", "codec pin".
+		 * These must match widget names in machine and codec DAPM tables.
+		 */
+		audio-routing =
+			"Speaker",    "OUTL",
+			"Speaker",    "OUTR",
+			"Headphone",  "OUTL",
+			"Headphone",  "OUTR";
+	};
+};
+
+/*
+ * Codec node — lives under the I2C bus it is connected to.
+ * Change &i2c1 to match your board's I2C controller node.
+ */
+&i2c1 {
+	status = "okay";
+	/* I2C bus speed — 400kHz (Fast Mode) is common for audio codecs */
+	clock-frequency = <400000>;
+
+	my_codec: audio-codec@18 {
+		compatible = "myvendor,my-codec";
+		reg = <0x18>;           /* I2C address — check your codec datasheet */
+		#sound-dai-cells = <0>;
+		status = "okay";
+
+		/*
+		 * If your codec needs MCLK from the SoC, reference the clock here.
+		 * The machine driver hw_params() will call set_sysclk() with the
+		 * correct MCLK frequency.
+		 *
+		 * clocks = <&ccu CLK_I2S_MCLK>;
+		 * clock-names = "mclk";
+		 */
+	};
+};
+
+/*
+ * I2S controller node — enable the I2S interface.
+ * Change &i2s0 to your SoC's I2S controller DT node name.
+ */
+&i2s0 {
+	status = "okay";
+	/*
+	 * Some SoCs need pinmux for I2S pins declared here.
+	 * Example for Allwinner H3:
+	 *
+	 * pinctrl-names = "default";
+	 * pinctrl-0 = <&i2s0_pins>;
+	 */
+};

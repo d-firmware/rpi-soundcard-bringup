@@ -1,0 +1,41 @@
+# Kernel build artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.symvers
+*.order
+Module.symvers
+modules.order
+.tmp_versions/
+.cache.mk
+*.cmd
+.*.cmd
+
+# Device Tree compiled binaries
+*.dtb
+*.dtbo
+
+# Build output
+build/
+out/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+dmesg_*.txt
